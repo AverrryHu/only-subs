@@ -7,11 +7,15 @@ from typing import Optional
 
 # 读取配置
 from dotenv import load_dotenv
+import os
 env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
 load_dotenv(env_path)
 
-SUPABASE_URL = os.environ.get('SUPABASE_URL', 'https://oguxjqmhsctolgzbkegy.supabase.co')
-SUPABASE_KEY = os.environ.get('SUPABASE_KEY', 'sb_publishable_XhAMOQXhYLVlvVywa59zDw_lXCKfNhc')
+SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY', '')
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise Exception("SUPABASE_URL and SUPABASE_KEY must be set")
 
 _supabase_client: Optional[Client] = None
 
@@ -22,21 +26,8 @@ def get_supabase() -> Client:
     return _supabase_client
 
 
-# 表已通过Supabase Dashboard创建
-# 这里只做连接测试
-
-def test_connection():
-    """测试数据库连接"""
-    client = get_supabase()
-    try:
-        client.table('channels').select('id').limit(1).execute()
-        print("数据库连接正常")
-        return True
-    except Exception as e:
-        print(f"数据库连接失败: {e}")
-        return False
-
-test_connection()
+# 连接测试（生产环境不自动测试）
+# test_connection()
 
 
 # 频道操作
