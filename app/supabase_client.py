@@ -5,17 +5,12 @@ import os
 from supabase import create_client, Client
 from typing import Optional
 
-# 读取配置
-from dotenv import load_dotenv
-import os
-env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
-load_dotenv(env_path)
+# 读取配置（Railway用环境变量，默认用本地配置）
+SUPABASE_URL = os.environ.get('SUPABASE_URL') or 'https://oguxjqmhsctolgzbkegy.supabase.co'
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY') or 'sb_publishable_XhAMOQXhYLVlvVywa59zDw_lXCKfNhc'
 
-SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
-SUPABASE_KEY = os.environ.get('SUPABASE_KEY', '')
-
-if not SUPABASE_URL or not SUPABASE_KEY:
-    raise Exception("SUPABASE_URL and SUPABASE_KEY must be set")
+print(f"SUPABASE_URL: {SUPABASE_URL[:20]}...")
+print(f"SUPABASE_KEY set: {bool(SUPABASE_KEY)}")
 
 _supabase_client: Optional[Client] = None
 
