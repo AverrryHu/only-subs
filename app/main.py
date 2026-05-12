@@ -32,6 +32,12 @@ bi_fetcher = BilibiliFetcher()
 podcast_fetcher = get_podcast_fetcher()
 
 
+@app.get("/")
+def root():
+    """健康检查"""
+    return {"status": "ok"}
+
+
 @app.on_event("startup")
 async def startup_event():
     """启动事件"""
