@@ -1,0 +1,13 @@
+fastapi==0.115.0
+uvicorn==0.30.6
+sqlalchemy==2.0.31
+yt-dlp==2024.8.6
+apscheduler==3.10.4
+python-dotenv==1.0.1
+youtube-transcript-api==1.2.4
+beautifulsoup4==4.12.3
+requests==2.32.5
+feedparser==6.10.11
+lxml==5.2.2
+supabase==2.7.1
+python-multipart==0.0.9
