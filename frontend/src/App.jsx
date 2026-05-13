@@ -258,14 +258,20 @@ function App() {
 
       if (res.ok) {
         const data = await res.json()
-        // 使用函数式更新，避免状态被覆盖
-        setSelectedVideo(prev => {
-          if (!prev) return null
-          return {
-            ...prev,
-            subtitles: data.subtitles || prev.subtitles || ''
-          }
-        })
+        // 处理字幕结果或job状态
+        if (data.subtitles) {
+          setSelectedVideo(prev => {
+            if (!prev) return null
+            return {
+              ...prev,
+              subtitles: data.subtitles || prev.subtitles || ''
+            }
+          })
+        } else if (data.jobId || data.status === 'processing') {
+          alert('字幕提取中，请稍后再试')
+        } else {
+          alert('未找到字幕')
+        }
       } else {
         const data = await res.json().catch(() => ({}))
         const msg = data?.detail || '提取失败'
