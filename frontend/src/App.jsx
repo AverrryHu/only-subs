@@ -804,8 +804,8 @@ function App() {
             <button className="close-btn" onClick={() => setShowSettings(false)}>×</button>
             <h2>设置</h2>
             <p className="settings-tip">
-              YouTube Data API Key（用于获取字幕，会覆盖服务器IP限制）<br/>
-              获取方法：Google Cloud Console → API → 凭证 → 创建API密钥
+              API Key (用于获取YouTube字幕，推荐 supadata.ai)<br/>
+              注册: https://supadata.ai
             </p>
             <input
               type="text"

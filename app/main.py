@@ -721,17 +721,47 @@ class SubtitleIn(BaseModel):
 @app.post("/subtitles/extract", response_model=dict)
 def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(None)):
     """提取YouTube字幕"""
-    from youtube_transcript_api import YouTubeTranscriptApi
-    import dataclasses
     from .supabase_client import get_supabase, get_user_settings
+    import requests
 
     video_id = sub.video_id
     user_id = get_user_id(authorization)
 
+    # 获取用户的YouTube API Key（也用于supadata）
+    settings = get_user_settings(user_id)
+    api_key = settings.get('youtube_api_key') if settings else None
+
+    if not api_key:
+        return {"error": "请先在设置中添加API Key (supadata.ai)"}
+
+    # 使用supadata.ai API
+    url = "https://api.supadata.ai/v1/transcripts"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "youtube_video_id": video_id,
+        "languages": ["zh", "en"]
+    }
+
     try:
-        api = YouTubeTranscriptApi()
-        transcript = api.fetch(video_id, languages=['zh', 'en'])
-        data = dataclasses.asdict(transcript)
+        resp = requests.post(url, json=data, headers=headers, timeout=30)
+        if resp.status_code != 200:
+            return {"error": f"API错误: {resp.status_code} - {resp.text[:100]}"}
+
+        result = resp.json()
+        if 'text' in result:
+            return {"subtitles": result['text'], "language": result.get('language', 'unknown')}
+        elif 'transcripts' in result and result['transcripts']:
+            transcripts = result['transcripts']
+            text = '\n'.join([t['text'] for t in transcripts])
+            return {"subtitles": text, "language": "zh/en"}
+        else:
+            return {"error": "未找到字幕"}
+
+    except Exception as e:
+        return {"error": str(e)}
 
         snippets = data['snippets']
         texts = [s.get('text', '') for s in snippets]
