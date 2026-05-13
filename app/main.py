@@ -786,7 +786,13 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
                 text = content
             lang = result.get('lang', 'unknown')
 
-            # 保存到数据库（video_id可能是yt:video:xxx或直接的audio_url）
+            # 清洗字幕
+            import re
+            text = re.sub(r'\n+', ' ', text)
+            text = re.sub(r'\s+', ' ', text)
+            text = text.strip()
+
+            # 保存到数据库
             try:
                 client = get_supabase()
                 client.table('videos').update({'subtitles': text}).eq('video_id', video_id).execute()
@@ -846,6 +852,12 @@ def poll_subtitles(job_id: str, video_id: str, authorization: Optional[str] = He
                 text = '\n'.join([c.get('text', '') for c in content])
             else:
                 text = content
+
+            # 清洗字幕：去掉换行符，合并为连续文本
+            import re
+            text = re.sub(r'\n+', ' ', text)  # 换行符转空格
+            text = re.sub(r'\s+', ' ', text)  # 多个空格合并为一个
+            text = text.strip()
 
             # 保存到数据库
             if video_id:
