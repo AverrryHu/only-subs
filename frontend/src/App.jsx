@@ -243,15 +243,15 @@ function App() {
       } else if (selectedVideo.url && platform === 'youtube') {
         const match = selectedVideo.url.match(/[?&]v=([^&]+)/)
         if (match) videoId = match[1]
-      } else if (selectedVideo.audio_url && platform === 'podcast') {
-        // podcast使用audio_url
-        videoId = selectedVideo.audio_url
+      } else if (platform === 'podcast') {
+        // podcast: 用video_id用于数据库匹配
+        // audio_url从数据库获取传给API
       }
 
       const res = await fetch(`${API_URL}/subtitles/extract`, {
         method: 'POST',
         headers: { ...authHeader, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ video_id: videoId })
+        body: JSON.stringify({ video_id: videoId, audio_url: selectedVideo.audio_url || '' })
       })
 
       if (res.ok) {
@@ -268,7 +268,7 @@ function App() {
           // 异步任务，轮询结果
           pollJob(data.jobId)
         } else if (data.status === 'processing') {
-          pollJob(data.jobId)
+          pollJob(data.jobId, videoId)
         } else if (data.error) {
           alert(data.error)
         }
@@ -296,7 +296,7 @@ function App() {
     for (let i = 0; i < 60; i++) {  // 最多5分钟
       await new Promise(r => setTimeout(r, 5000))
       try {
-        const res = await fetch(`${API_URL}/subtitles/poll/${jobId}`, { headers: authHeader })
+        const res = await fetch(`${API_URL}/subtitles/poll/${jobId}?video_id=${encodeURIComponent(videoId)}`, { headers: authHeader })
         if (!res.ok) {
           const text = await res.text()
           if (text.includes('<!DOCTYPE html>')) {

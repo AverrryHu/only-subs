@@ -716,6 +716,7 @@ def import_opml(file: UploadFile = File(...), authorization: Optional[str] = Hea
 # ===== 提取字幕 =====
 class SubtitleIn(BaseModel):
     video_id: str
+    audio_url: Optional[str] = None
 
 
 @app.post("/subtitles/extract", response_model=dict)
@@ -725,6 +726,7 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
     import requests
 
     video_id = sub.video_id
+    audio_url = sub.audio_url  # podcast的audio_url
     user_id = get_user_id(authorization)
 
     # 获取用户的YouTube API Key（也用于supadata）
@@ -734,14 +736,16 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
     if not api_key:
         return {"error": "请先在设置中添加API Key (supadata.ai)"}
 
-    # 如果video_id是URL（podcast等），直接使用；否则构造YouTube URL
-    if video_id.startswith('http'):
-        video_url = video_id
-        # podcast需要referer
+    # podcast使用audio_url，YouTube使用video_id
+    if audio_url:
+        video_url = audio_url
         if 'xiaoyuzhoufm' in video_url or 'xyzcdn' in video_url:
             api_url = f"https://api.supadata.ai/v1/transcript?url={video_url}&lang=zh&text=true&mode=auto&referer=https://xiaoyuzhoufm.com"
         else:
             api_url = f"https://api.supadata.ai/v1/transcript?url={video_url}&lang=zh&text=true&mode=auto"
+    elif video_id.startswith('http'):
+        video_url = video_id
+        api_url = f"https://api.supadata.ai/v1/transcript?url={video_url}&lang=zh&text=true&mode=auto"
     else:
         video_url = f"https://www.youtube.com/watch?v={video_id}"
         api_url = f"https://api.supadata.ai/v1/transcript?url={video_url}&lang=zh&text=true&mode=auto"
@@ -756,7 +760,7 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
             # 返回job ID，需要轮询
             result = resp.json()
             job_id = result.get('jobId')
-            return {"status": "processing", "jobId": job_id}
+            return {"status": "processing", "jobId": job_id, "video_id": video_id}
         elif resp.status_code != 200:
             # 过滤HTML错误内容
             error_msg = resp.text if resp.text and not resp.text.startswith('<!') else f"HTTP {resp.status_code}"
@@ -787,7 +791,7 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
 
 
 @app.get("/subtitles/poll/{job_id}")
-def poll_subtitles(job_id: str, authorization: Optional[str] = Header(None)):
+def poll_subtitles(job_id: str, video_id: str, authorization: Optional[str] = Header(None)):
     """轮询异步字幕任务状态"""
     from .supabase_client import get_supabase, get_user_settings
     import requests
@@ -798,6 +802,9 @@ def poll_subtitles(job_id: str, authorization: Optional[str] = Header(None)):
 
     if not api_key:
         return {"error": "请先在设置中添加API Key (supadata.ai)"}
+
+    if not video_id:
+        return {"error": "缺少video_id参数"}
 
     headers = {"x-api-key": api_key}
 
@@ -825,6 +832,15 @@ def poll_subtitles(job_id: str, authorization: Optional[str] = Header(None)):
                 text = '\n'.join([c.get('text', '') for c in content])
             else:
                 text = content
+
+            # 保存到数据库
+            if video_id:
+                try:
+                    client = get_supabase()
+                    client.table('videos').update({'subtitles': text}).eq('video_id', video_id).execute()
+                except Exception as e:
+                    print(f"保存字幕失败: {e}")
+
             return {"status": "completed", "subtitles": text}
         else:
             return {"status": status}
