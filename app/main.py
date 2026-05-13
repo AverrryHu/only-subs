@@ -72,10 +72,11 @@ class VideoOut(BaseModel):
     thumbnail: Optional[str]
     published_at: Optional[str]
     duration: Optional[int]
-    subtitles: Optional[str]
+    subtitles: Optional[str] = None
     description: Optional[str] = None
     has_new: bool
     platform: Optional[str] = None
+    job_id: Optional[str] = None
 
 
 class ChannelOut(BaseModel):
@@ -365,7 +366,8 @@ def get_videos_api(channel_id: Optional[str] = None, authorization: Optional[str
             subtitles=v.get('subtitles'),
             description=v.get('description'),
             has_new=has_new,
-            platform=platform
+            platform=platform,
+            job_id=v.get('job_id')
         ))
 
     # 保存到缓存
@@ -426,7 +428,8 @@ def get_video_by_id_api(video_id: str, authorization: Optional[str] = Header(Non
         subtitles=video.get('subtitles'),
         description=video.get('description'),
         has_new=has_new,
-        platform=platform
+        platform=platform,
+        job_id=video.get('job_id')
     )
 
 
