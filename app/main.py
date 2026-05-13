@@ -734,29 +734,32 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
     if not api_key:
         return {"error": "请先在设置中添加API Key (supadata.ai)"}
 
-    # 使用supadata.ai API
-    url = "https://api.supadata.ai/v1/transcripts"
+    # 使用supadata.ai API - GET request with query params
+    video_url = f"https://www.youtube.com/watch?v={video_id}"
+    url = f"https://api.supadata.ai/v1/transcript?url={video_url}&lang=zh&text=true&mode=auto"
     headers = {
         "x-api-key": api_key,
-        "Content-Type": "application/json"
-    }
-    data = {
-        "youtube_video_id": video_id,
-        "languages": ["zh", "en"]
     }
 
     try:
-        resp = requests.post(url, json=data, headers=headers, timeout=30)
-        if resp.status_code != 200:
+        resp = requests.get(url, headers=headers, timeout=30)
+        if resp.status_code == 202:
+            # 返回job ID，需要轮询
+            result = resp.json()
+            job_id = result.get('jobId')
+            # 这里简化处理，直接返回job ID
+            return {"status": "processing", "jobId": job_id}
+        elif resp.status_code != 200:
             return {"error": f"API错误: {resp.status_code} - {resp.text[:100]}"}
 
         result = resp.json()
-        if 'text' in result:
-            return {"subtitles": result['text'], "language": result.get('language', 'unknown')}
-        elif 'transcripts' in result and result['transcripts']:
-            transcripts = result['transcripts']
-            text = '\n'.join([t['text'] for t in transcripts])
-            return {"subtitles": text, "language": "zh/en"}
+        if 'content' in result:
+            content = result['content']
+            if isinstance(content, list):
+                text = '\n'.join([c.get('text', '') for c in content])
+            else:
+                text = content
+            return {"subtitles": text, "language": result.get('lang', 'unknown')}
         else:
             return {"error": "未找到字幕"}
 
