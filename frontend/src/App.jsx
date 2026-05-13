@@ -815,7 +815,7 @@ function App() {
                       <button
                         className="extract-btn"
                         onClick={extractSubtitles}
-                        disabled={extracting || getChannelPlatform(selectedVideo) !== 'youtube'}
+                        disabled={extracting || !['youtube', 'podcast'].includes(getChannelPlatform(selectedVideo))}
                       >
                         {extracting ? '提取中...' : '提取文字内容'}
                       </button>
