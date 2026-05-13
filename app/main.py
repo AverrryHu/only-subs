@@ -777,6 +777,7 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
             # 记录任务
             transcription_tasks[job_id] = {
                 'video_id': video_id,
+                'audio_url': audio_url,
                 'status': 'processing',
                 'created_at': time.time(),
                 'user_id': user_id
@@ -896,15 +897,32 @@ def poll_subtitles(job_id: str, video_id: str, authorization: Optional[str] = He
 def list_tasks(authorization: Optional[str] = Header(None)):
     """列出用户的转录任务历史"""
     user_id = get_user_id(authorization)
+    from .supabase_client import get_supabase
+
+    # 获取视频信息用于显示标题
+    try:
+        client = get_supabase()
+        videos_resp = client.table('videos').select('id,video_id,title,subtitles').execute()
+        video_map = {v['video_id']: v for v in videos_resp.data}
+    except:
+        video_map = {}
+
     # 过滤该用户的任务
     tasks = []
     for job_id, task in transcription_tasks.items():
         if task.get('user_id') == user_id:
+            video_id = task.get('video_id', '')
+            video_info = video_map.get(video_id, {})
+            has_subtitles = bool(video_info.get('subtitles'))
+
             created = task.get('created_at', 0)
             tasks.append({
                 "job_id": job_id,
-                "video_id": task.get('video_id'),
+                "video_id": video_id,
+                "title": video_info.get('title', '')[:50],
+                "audio_url": task.get('audio_url', ''),
                 "status": task.get('status'),
+                "saved": has_subtitles,
                 "created_at": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(created)),
                 "error": task.get('error', '')
             })
