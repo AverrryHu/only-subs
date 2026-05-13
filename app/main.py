@@ -884,17 +884,14 @@ def poll_subtitles(job_id: str, video_id: str, authorization: Optional[str] = He
             else:
                 text = content
 
-            # 清洗字幕：去掉换行和中文之间的空格
+            # 清洗字幕
             import re
             text = re.sub(r'\n+', '', text)  # 去掉换行
-            # 去掉中文之间的空格（需要多次应用）
-            for _ in range(5):
-                text = re.sub(r'([一-龥])\s+([一-龥])', r'\1\2', text)
-            # 英文/数字和中文之间加空格
+            # 先去掉所有空格
+            text = text.replace(' ', '')
+            # 然后在英文/数字和中文之间加空格
             text = re.sub(r'([a-zA-Z0-9])([一-龥])', r'\1 \2', text)
             text = re.sub(r'([一-龥])([a-zA-Z0-9])', r'\1 \2', text)
-            # 多个空格合并为一个
-            text = re.sub(r' +', ' ', text)
             text = text.strip()
 
             # 保存到数据库
