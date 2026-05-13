@@ -739,6 +739,17 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
     # podcast使用audio_url，YouTube使用video_id
     if audio_url:
         video_url = audio_url
+        # 小宇宙URL需要提取真实的CDN重定向地址
+        if 'dts-api.xiaoyuzhoufm.com' in video_url:
+            try:
+                resp = requests.head(video_url, allow_redirects=True, timeout=10)
+                if resp.status_code == 200 and resp.url:
+                    video_url = resp.url
+                    # 去掉查询参数
+                    if '?' in video_url:
+                        video_url = video_url.split('?')[0]
+            except Exception as e:
+                print(f"获取CDN URL失败: {e}")
         if 'xiaoyuzhoufm' in video_url or 'xyzcdn' in video_url:
             api_url = f"https://api.supadata.ai/v1/transcript?url={video_url}&lang=zh&text=true&mode=auto&referer=https://xiaoyuzhoufm.com"
         else:
