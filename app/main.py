@@ -758,7 +758,9 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
             job_id = result.get('jobId')
             return {"status": "processing", "jobId": job_id}
         elif resp.status_code != 200:
-            return {"error": f"API错误: {resp.status_code} - {resp.text[:100]}"}
+            # 过滤HTML错误内容
+            error_msg = resp.text if resp.text and not resp.text.startswith('<!') else f"HTTP {resp.status_code}"
+            return {"error": f"API错误: {resp.status_code}", "detail": error_msg[:50]}
 
         result = resp.json()
         if 'content' in result:
@@ -802,7 +804,15 @@ def poll_subtitles(job_id: str, authorization: Optional[str] = Header(None)):
     try:
         resp = requests.get(f"https://api.supadata.ai/v1/transcript/{job_id}", headers=headers, timeout=30)
         if resp.status_code != 200:
+            # 可能是502错误，服务端问题
+            if resp.text and resp.text.startswith('<!'):
+                return {"status": "error", "message": "服务端繁忙，请稍后重试"}
             return {"status": "error", "message": resp.text[:100]}
+
+        # 检查响应是否是JSON
+        content_type = resp.headers.get('content-type', '')
+        if 'application/json' not in content_type:
+            return {"status": "error", "message": "响应格式错误"}
 
         result = resp.json()
         status = result.get('status')
