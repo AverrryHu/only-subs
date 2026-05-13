@@ -292,25 +292,41 @@ function App() {
 
   // 轮询异步任务
   const pollJob = async (jobId) => {
-    alert('字幕提取中，请稍候...')
-    for (let i = 0; i < 20; i++) {
+    // 持续轮询直到完成
+    for (let i = 0; i < 60; i++) {  // 最多5分钟
       await new Promise(r => setTimeout(r, 5000))
       try {
         const res = await fetch(`${API_URL}/subtitles/poll/${jobId}`, { headers: authHeader })
+        if (!res.ok) {
+          const text = await res.text()
+          if (text.includes('<!DOCTYPE html>')) {
+            // 服务端错误，继续等待
+            continue
+          }
+          setExtracting(false)
+          alert('提取失败，请稍后重试')
+          return
+        }
         const data = await res.json()
         if (data.status === 'completed') {
           setSelectedVideo(prev => {
             if (!prev) return null
             return { ...prev, subtitles: data.subtitles || '' }
           })
+          setExtracting(false)
           alert('字幕提取完成')
           return
         } else if (data.status === 'error') {
-          alert('提取失败: ' + data.message)
+          setExtracting(false)
+          alert('提取失败: ' + (data.message || '未知错误'))
           return
         }
-      } catch (e) {}
+        // status === 'active' 继续等待
+      } catch (e) {
+        // 网络错误继续等待
+      }
     }
+    setExtracting(false)
     alert('字幕提取超时，请稍后重试')
   }
 
@@ -819,6 +835,7 @@ function App() {
                       >
                         {extracting ? '提取中...' : '提取文字内容'}
                       </button>
+                      {extracting && <div style={{fontSize: 12, color: '#888', marginTop: 4}}>正在提取播客音频，请稍候...</div>}
                     </div>
                   )}
                 </div>
