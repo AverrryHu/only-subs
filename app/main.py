@@ -774,7 +774,13 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
             # 返回job ID，需要轮询
             result = resp.json()
             job_id = result.get('jobId')
-            # 记录任务
+            # 记录任务到数据库
+            try:
+                client = get_supabase()
+                client.table('videos').update({'job_id': job_id}).eq('video_id', video_id).execute()
+            except Exception as e:
+                print(f"保存job_id失败: {e}")
+            # 记录任务到内存
             transcription_tasks[job_id] = {
                 'video_id': video_id,
                 'audio_url': audio_url,
@@ -878,10 +884,10 @@ def poll_subtitles(job_id: str, video_id: str, authorization: Optional[str] = He
             if video_id:
                 try:
                     client = get_supabase()
-                    client.table('videos').update({'subtitles': text}).eq('video_id', video_id).execute()
-                    # 标记任务完成
-                    if job_id in transcription_tasks:
-                        transcription_tasks[job_id]['status'] = 'completed'
+                    client.table('videos').update({
+                        'subtitles': text,
+                        'job_id': job_id
+                    }).eq('video_id', video_id).execute()
                 except Exception as e:
                     print(f"保存字幕失败: {e}")
 
@@ -895,40 +901,29 @@ def poll_subtitles(job_id: str, video_id: str, authorization: Optional[str] = He
 
 @app.get("/subtitles/tasks")
 def list_tasks(authorization: Optional[str] = Header(None)):
-    """列出用户的转录任务历史"""
+    """列出用户的转录任务历史（从数据库获取job_id）"""
     user_id = get_user_id(authorization)
     from .supabase_client import get_supabase
 
-    # 获取视频信息用于显示标题
     try:
         client = get_supabase()
-        videos_resp = client.table('videos').select('id,video_id,title,subtitles').execute()
-        video_map = {v['video_id']: v for v in videos_resp.data}
-    except:
-        video_map = {}
-
-    # 过滤该用户的任务
-    tasks = []
-    for job_id, task in transcription_tasks.items():
-        if task.get('user_id') == user_id:
-            video_id = task.get('video_id', '')
-            video_info = video_map.get(video_id, {})
-            has_subtitles = bool(video_info.get('subtitles'))
-
-            created = task.get('created_at', 0)
-            tasks.append({
-                "job_id": job_id,
-                "video_id": video_id,
-                "title": video_info.get('title', '')[:50],
-                "audio_url": task.get('audio_url', ''),
-                "status": task.get('status'),
-                "saved": has_subtitles,
-                "created_at": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(created)),
-                "error": task.get('error', '')
-            })
-    # 按时间倒序
-    tasks.sort(key=lambda x: x['created_at'], reverse=True)
-    return tasks[:50]  # 返回最近50个
+        # 获取有job_id的视频
+        videos_resp = client.table('videos').select('id,video_id,title,subtitles,job_id').execute()
+        tasks = []
+        for v in videos_resp.data:
+            if v.get('job_id'):
+                tasks.append({
+                    "job_id": v.get('job_id'),
+                    "video_id": v.get('video_id'),
+                    "title": v.get('title', '')[:50] if v.get('title') else '',
+                    "status": "completed" if v.get('subtitles') else "processing",
+                    "saved": bool(v.get('subtitles'))
+                })
+        # 按job_id排序（最近的在前面）
+        tasks.sort(key=lambda x: x['job_id'], reverse=True)
+        return tasks[:50]
+    except Exception as e:
+        return {"error": str(e)}
 
 
 # ===== 图片代理 =====
