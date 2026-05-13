@@ -19,6 +19,9 @@ from .supabase_client import (
 
 app = FastAPI(title="Only Subs")
 
+# 内存中的任务历史记录
+transcription_tasks = {}  # {job_id: {video_id, status, created_at, user_id, error}}
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -771,6 +774,13 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
             # 返回job ID，需要轮询
             result = resp.json()
             job_id = result.get('jobId')
+            # 记录任务
+            transcription_tasks[job_id] = {
+                'video_id': video_id,
+                'status': 'processing',
+                'created_at': time.time(),
+                'user_id': user_id
+            }
             return {"status": "processing", "jobId": job_id, "video_id": video_id}
         elif resp.status_code != 200:
             # 过滤HTML错误内容
@@ -845,6 +855,10 @@ def poll_subtitles(job_id: str, video_id: str, authorization: Optional[str] = He
             return {"status": "processing"}
         elif status == 'failed':
             error_msg = result.get('message', '任务失败')
+            # 记录失败任务
+            if job_id in transcription_tasks:
+                transcription_tasks[job_id]['status'] = 'failed'
+                transcription_tasks[job_id]['error'] = error_msg
             return {"status": "failed", "message": error_msg}
         elif status == 'completed':
             content = result.get('content', [])
@@ -864,6 +878,9 @@ def poll_subtitles(job_id: str, video_id: str, authorization: Optional[str] = He
                 try:
                     client = get_supabase()
                     client.table('videos').update({'subtitles': text}).eq('video_id', video_id).execute()
+                    # 标记任务完成
+                    if job_id in transcription_tasks:
+                        transcription_tasks[job_id]['status'] = 'completed'
                 except Exception as e:
                     print(f"保存字幕失败: {e}")
 
@@ -873,6 +890,27 @@ def poll_subtitles(job_id: str, video_id: str, authorization: Optional[str] = He
 
     except Exception as e:
         return {"error": str(e)}
+
+
+@app.get("/subtitles/tasks")
+def list_tasks(authorization: Optional[str] = Header(None)):
+    """列出用户的转录任务历史"""
+    user_id = get_user_id(authorization)
+    # 过滤该用户的任务
+    tasks = []
+    for job_id, task in transcription_tasks.items():
+        if task.get('user_id') == user_id:
+            created = task.get('created_at', 0)
+            tasks.append({
+                "job_id": job_id,
+                "video_id": task.get('video_id'),
+                "status": task.get('status'),
+                "created_at": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(created)),
+                "error": task.get('error', '')
+            })
+    # 按时间倒序
+    tasks.sort(key=lambda x: x['created_at'], reverse=True)
+    return tasks[:50]  # 返回最近50个
 
 
 # ===== 图片代理 =====
