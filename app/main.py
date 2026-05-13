@@ -650,6 +650,9 @@ def import_opml(file: UploadFile = File(...), authorization: Optional[str] = Hea
                 if not info:
                     errors.append(f"无法获取: {title}")
                     continue
+
+                # 检查是否已存在
+                existing = get_channel_by_channel_id(info["channel_id"])
                 if existing and existing.get('user_id') == user_id:
                     added_channels.append(existing)
                     continue
