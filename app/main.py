@@ -853,10 +853,10 @@ def poll_subtitles(job_id: str, video_id: str, authorization: Optional[str] = He
             else:
                 text = content
 
-            # 清洗字幕：去掉换行符，合并为连续文本
+            # 清洗字幕：去掉换行和多余空格，合并为连续文本
             import re
-            text = re.sub(r'\n+', ' ', text)  # 换行符转空格
-            text = re.sub(r'\s+', ' ', text)  # 多个空格合并为一个
+            text = re.sub(r'\n+', '', text)  # 去掉换行
+            text = re.sub(r' +', '', text)   # 去掉空格
             text = text.strip()
 
             # 保存到数据库
