@@ -828,7 +828,14 @@ function App() {
                     ) : null
                   ) : null}
                   {selectedVideo.subtitles ? (
-                    <pre className="transcript-text">{selectedVideo.subtitles}</pre>
+                    <div>
+                      {selectedVideo.job_id && (
+                        <div style={{fontSize: 11, color: '#888', marginBottom: 4}}>
+                          job: {selectedVideo.job_id}
+                        </div>
+                      )}
+                      <pre className="transcript-text">{selectedVideo.subtitles}</pre>
+                    </div>
                   ) : (
                     <div className="no-content">
                       <div>暂无文字内容</div>
