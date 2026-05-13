@@ -720,7 +720,7 @@ class SubtitleIn(BaseModel):
 
 @app.post("/subtitles/extract", response_model=dict)
 def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(None)):
-    """提取YouTube字幕"""
+    """提取YouTube/音频字幕"""
     from .supabase_client import get_supabase, get_user_settings
     import requests
 
@@ -734,8 +734,12 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
     if not api_key:
         return {"error": "请先在设置中添加API Key (supadata.ai)"}
 
-    # 使用supadata.ai API - GET request with query params
-    video_url = f"https://www.youtube.com/watch?v={video_id}"
+    # 如果video_id是URL（podcast等），直接使用；否则构造YouTube URL
+    if video_id.startswith('http'):
+        video_url = video_id
+    else:
+        video_url = f"https://www.youtube.com/watch?v={video_id}"
+
     url = f"https://api.supadata.ai/v1/transcript?url={video_url}&lang=zh&text=true&mode=auto"
     headers = {
         "x-api-key": api_key,
@@ -761,10 +765,10 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
                 text = content
             lang = result.get('lang', 'unknown')
 
-            # 保存到数据库
+            # 保存到数据库（video_id可能是yt:video:xxx或直接的audio_url）
             try:
                 client = get_supabase()
-                client.table('videos').update({'subtitles': text}).eq('video_id', f'yt:video:{video_id}').execute()
+                client.table('videos').update({'subtitles': text}).eq('video_id', video_id).execute()
             except Exception as e:
                 print(f"保存字幕到数据库失败: {e}")
 
@@ -774,20 +778,6 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
 
     except Exception as e:
         return {"error": str(e)}
-
-        snippets = data['snippets']
-        texts = [s.get('text', '') for s in snippets]
-        subtitles = '\n'.join(texts)
-
-        # 保存到数据库
-        # 尝试用完整video_id更新
-        client = get_supabase()
-        client.table('videos').update({'subtitles': subtitles}).eq('video_id', f'yt:video:{video_id}').execute()
-
-        return {'subtitles': subtitles, 'language': data['language']}
-    except Exception as e:
-        print(f'提取字幕失败: {e}')
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ===== 图片代理 =====
