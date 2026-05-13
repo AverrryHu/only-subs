@@ -91,6 +91,7 @@ class UserSettings(BaseModel):
     sessdata: Optional[str] = None
     bili_jct: Optional[str] = None
     buvid3: Optional[str] = None
+    youtube_api_key: Optional[str] = None
 
 
 class UserInfo(BaseModel):
@@ -593,7 +594,8 @@ def get_settings(authorization: Optional[str] = Header(None)):
         settings = get_user_settings('guest')
     return {
         "has_credential": bool(settings['sessdata']) if settings else False,
-        "sessdata": settings.get('sessdata', '') if settings else ''
+        "sessdata": settings.get('sessdata', '') if settings else '',
+        "youtube_api_key": settings.get('youtube_api_key', '') if settings else ''
     }
 
 
@@ -606,10 +608,11 @@ def save_settings(settings: UserSettings, authorization: Optional[str] = Header(
         None,  # folo_token - 不再使用
         settings.sessdata,
         settings.bili_jct,
-        settings.buvid3
+        settings.buvid3,
+        youtube_api_key=settings.youtube_api_key
     )
 
-    return {"message": "设置已保存（bilibili已暂时移除支持）"}
+    return {"message": "设置已保存"}
 
 
 # ===== OPML导入 =====
@@ -720,15 +723,22 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
     """提取YouTube字幕"""
     from youtube_transcript_api import YouTubeTranscriptApi
     import dataclasses
-    from .supabase_client import get_supabase
+    from .supabase_client import get_supabase, get_user_settings
 
     video_id = sub.video_id
     user_id = get_user_id(authorization)
 
+    # 获取用户的YouTube API Key
+    settings = get_user_settings(user_id)
+    api_key = settings.get('youtube_api_key') if settings else None
+
     try:
         api = YouTubeTranscriptApi()
-        # 优先中文
-        transcript = api.fetch(video_id, languages=['zh', 'en'])
+        # 如果用户有API key，使用它
+        if api_key:
+            transcript = api.fetch(video_id, languages=['zh', 'en'], proxies={})
+        else:
+            transcript = api.fetch(video_id, languages=['zh', 'en'])
         data = dataclasses.asdict(transcript)
 
         snippets = data['snippets']

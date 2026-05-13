@@ -199,7 +199,7 @@ def get_user_settings(user_id: str):
     result = client.table('user_settings').select('*').eq('user_id', user_id).execute()
     return result.data[0] if result.data else None
 
-def save_user_settings(user_id: str, folo_token: str = None, sessdata: str = None, bili_jct: str = None, buvid3: str = None, user_email: str = None, user_name: str = None):
+def save_user_settings(user_id: str, folo_token: str = None, sessdata: str = None, bili_jct: str = None, buvid3: str = None, user_email: str = None, user_name: str = None, youtube_api_key: str = None):
     client = get_supabase()
     existing = get_user_settings(user_id)
     try:
@@ -217,6 +217,8 @@ def save_user_settings(user_id: str, folo_token: str = None, sessdata: str = Non
                 update_data['user_email'] = user_email
             if user_name is not None:
                 update_data['user_name'] = user_name
+            if youtube_api_key is not None:
+                update_data['youtube_api_key'] = youtube_api_key
             if update_data:
                 client.table('user_settings').update(update_data).eq('user_id', user_id).execute()
         else:
@@ -233,9 +235,10 @@ def save_user_settings(user_id: str, folo_token: str = None, sessdata: str = Non
                 insert_data['user_email'] = user_email
             if user_name:
                 insert_data['user_name'] = user_name
+            if youtube_api_key:
+                insert_data['youtube_api_key'] = youtube_api_key
             client.table('user_settings').insert(insert_data).execute()
     except Exception as e:
-        # 如果folo_token列不存在，只保存其他字段
         if 'folo_token' in str(e) and existing:
             update_data = {}
             if sessdata is not None:

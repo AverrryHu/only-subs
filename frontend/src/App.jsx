@@ -293,6 +293,7 @@ function App() {
 
   const [showSettings, setShowSettings] = useState(false)
   const [sessdata, setSessdata] = useState('')
+  const [youtubeApiKey, setYoutubeApiKey] = useState('')
   const [hasCredential, setHasCredential] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -356,6 +357,7 @@ function App() {
         await fetch(`${API_URL}/settings`, { headers: header }).then(r => r.json()).then(d => {
           setHasCredential(d.has_credential)
           if (d.sessdata) setSessdata(d.sessdata)
+          if (d.youtube_api_key) setYoutubeApiKey(d.youtube_api_key)
         })
         setInitialFetched(true)
       }
@@ -384,14 +386,14 @@ function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify({
-          sessdata: sessdata.trim() || null
+          sessdata: sessdata.trim() || null,
+          youtube_api_key: youtubeApiKey.trim() || null
         })
       })
       if (res.ok) {
         setShowSettings(false)
         setHasCredential(!!sessdata.trim())
         alert('设置已保存')
-        alert('设置已保存！')
       } else {
         alert('保存失败')
       }
@@ -801,6 +803,17 @@ function App() {
             <button className="close-btn" onClick={() => setShowSettings(false)}>×</button>
             <h2>设置</h2>
             <p className="settings-tip">
+              YouTube Data API Key（用于获取字幕，会覆盖服务器IP限制）<br/>
+              获取方法：Google Cloud Console → API → 凭证 → 创建API密钥
+            </p>
+            <input
+              type="text"
+              placeholder="粘贴YouTube API Key（可选）..."
+              value={youtubeApiKey}
+              onChange={(e) => setYoutubeApiKey(e.target.value)}
+              className="settings-input"
+            />
+            <p className="settings-tip" style={{marginTop: 16}}>
               SESSDATA为B站登录凭证，可选填写以提高B站视频获取成功率。<br/>
               获取方法：登录bilibili.com → F12 → Application → Cookies → 复制SESSDATA值
             </p>
