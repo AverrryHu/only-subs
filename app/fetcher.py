@@ -13,7 +13,7 @@ class YouTubeFetcher:
         pass
 
     def _run_yt_dlp(self, args: List[str]) -> str:
-        cmd = ["yt-dlp", "--no-warnings", "--no-download"] + args
+        cmd = ["yt-dlp", "--no-warnings", "--no-download", "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"] + args
         try:
             result = subprocess.run(
                 cmd,
