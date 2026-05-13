@@ -737,21 +737,25 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
     # 如果video_id是URL（podcast等），直接使用；否则构造YouTube URL
     if video_id.startswith('http'):
         video_url = video_id
+        # podcast需要referer
+        if 'xiaoyuzhoufm' in video_url or 'xyzcdn' in video_url:
+            api_url = f"https://api.supadata.ai/v1/transcript?url={video_url}&lang=zh&text=true&mode=auto&referer=https://xiaoyuzhoufm.com"
+        else:
+            api_url = f"https://api.supadata.ai/v1/transcript?url={video_url}&lang=zh&text=true&mode=auto"
     else:
         video_url = f"https://www.youtube.com/watch?v={video_id}"
+        api_url = f"https://api.supadata.ai/v1/transcript?url={video_url}&lang=zh&text=true&mode=auto"
 
-    url = f"https://api.supadata.ai/v1/transcript?url={video_url}&lang=zh&text=true&mode=auto"
     headers = {
         "x-api-key": api_key,
     }
 
     try:
-        resp = requests.get(url, headers=headers, timeout=30)
+        resp = requests.get(api_url, headers=headers, timeout=30)
         if resp.status_code == 202:
             # 返回job ID，需要轮询
             result = resp.json()
             job_id = result.get('jobId')
-            # 这里简化处理，直接返回job ID
             return {"status": "processing", "jobId": job_id}
         elif resp.status_code != 200:
             return {"error": f"API错误: {resp.status_code} - {resp.text[:100]}"}
@@ -775,6 +779,45 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
             return {"subtitles": text, "language": lang}
         else:
             return {"error": "未找到字幕"}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/subtitles/poll/{job_id}")
+def poll_subtitles(job_id: str, authorization: Optional[str] = Header(None)):
+    """轮询异步字幕任务状态"""
+    from .supabase_client import get_supabase, get_user_settings
+    import requests
+
+    user_id = get_user_id(authorization)
+    settings = get_user_settings(user_id)
+    api_key = settings.get('youtube_api_key') if settings else None
+
+    if not api_key:
+        return {"error": "请先在设置中添加API Key (supadata.ai)"}
+
+    headers = {"x-api-key": api_key}
+
+    try:
+        resp = requests.get(f"https://api.supadata.ai/v1/transcript/{job_id}", headers=headers, timeout=30)
+        if resp.status_code != 200:
+            return {"status": "error", "message": resp.text[:100]}
+
+        result = resp.json()
+        status = result.get('status')
+
+        if status == 'active':
+            return {"status": "processing"}
+        elif status == 'completed':
+            content = result.get('content', [])
+            if isinstance(content, list):
+                text = '\n'.join([c.get('text', '') for c in content])
+            else:
+                text = content
+            return {"status": "completed", "subtitles": text}
+        else:
+            return {"status": status}
 
     except Exception as e:
         return {"error": str(e)}

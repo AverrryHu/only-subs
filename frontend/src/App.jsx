@@ -235,19 +235,17 @@ function App() {
 
     try {
       const platform = getChannelPlatform(selectedVideo)
-      if (platform !== 'youtube') {
-        alert('目前仅支持YouTube视频')
-        setExtracting(false)
-        return
-      }
 
-      // 从URL提取video_id
+      // 获取video_id - 支持YouTube和podcast
       let videoId = selectedVideo.video_id || ''
       if (videoId.includes('yt:video:')) {
         videoId = videoId.replace('yt:video:', '')
-      } else if (selectedVideo.url) {
+      } else if (selectedVideo.url && platform === 'youtube') {
         const match = selectedVideo.url.match(/[?&]v=([^&]+)/)
         if (match) videoId = match[1]
+      } else if (selectedVideo.audio_url && platform === 'podcast') {
+        // podcast使用audio_url
+        videoId = selectedVideo.audio_url
       }
 
       const res = await fetch(`${API_URL}/subtitles/extract`, {
@@ -258,7 +256,6 @@ function App() {
 
       if (res.ok) {
         const data = await res.json()
-        // 处理字幕结果或job状态
         if (data.subtitles) {
           setSelectedVideo(prev => {
             if (!prev) return null
@@ -267,14 +264,17 @@ function App() {
               subtitles: data.subtitles || prev.subtitles || ''
             }
           })
-        } else if (data.jobId || data.status === 'processing') {
-          alert('字幕提取中，请稍后再试')
-        } else {
-          alert('未找到字幕')
+        } else if (data.jobId) {
+          // 异步任务，轮询结果
+          pollJob(data.jobId)
+        } else if (data.status === 'processing') {
+          pollJob(data.jobId)
+        } else if (data.error) {
+          alert(data.error)
         }
       } else {
         const data = await res.json().catch(() => ({}))
-        const msg = data?.detail || '提取失败'
+        const msg = data?.detail || data?.error || '提取失败'
         if (msg.includes('Subtitles are disabled')) {
           alert('该视频未启用字幕，无法提取')
         } else if (msg.includes('no transcripts')) {
@@ -288,6 +288,30 @@ function App() {
       alert('提取失败')
     }
     setExtracting(false)
+  }
+
+  // 轮询异步任务
+  const pollJob = async (jobId) => {
+    alert('字幕提取中，请稍候...')
+    for (let i = 0; i < 20; i++) {
+      await new Promise(r => setTimeout(r, 5000))
+      try {
+        const res = await fetch(`${API_URL}/subtitles/poll/${jobId}`, { headers: authHeader })
+        const data = await res.json()
+        if (data.status === 'completed') {
+          setSelectedVideo(prev => {
+            if (!prev) return null
+            return { ...prev, subtitles: data.subtitles || '' }
+          })
+          alert('字幕提取完成')
+          return
+        } else if (data.status === 'error') {
+          alert('提取失败: ' + data.message)
+          return
+        }
+      } catch (e) {}
+    }
+    alert('字幕提取超时，请稍后重试')
   }
 
   const checkNow = async () => {
