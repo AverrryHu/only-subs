@@ -728,13 +728,8 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
     video_id = sub.video_id
     user_id = get_user_id(authorization)
 
-    # 获取用户的YouTube API Key
-    settings = get_user_settings(user_id)
-    api_key = settings.get('youtube_api_key') if settings else None
-
     try:
         api = YouTubeTranscriptApi()
-        # 如果用户有API key，使用它
         transcript = api.fetch(video_id, languages=['zh', 'en'])
         data = dataclasses.asdict(transcript)
 
