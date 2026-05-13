@@ -735,10 +735,7 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
     try:
         api = YouTubeTranscriptApi()
         # 如果用户有API key，使用它
-        if api_key:
-            transcript = api.fetch(video_id, languages=['zh', 'en'], proxies={})
-        else:
-            transcript = api.fetch(video_id, languages=['zh', 'en'])
+        transcript = api.fetch(video_id, languages=['zh', 'en'])
         data = dataclasses.asdict(transcript)
 
         snippets = data['snippets']
