@@ -809,14 +809,13 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
                 text = content
             lang = result.get('lang', 'unknown')
 
-            # 清洗字幕：去掉换行，中文之间不加空格
+            # 清洗字幕：去掉所有空格，然后只在英文/数字和中文之间加空格
             import re
             text = re.sub(r'\n+', '', text)  # 去掉换行
+            text = text.replace(' ', '')  # 移除所有空格
             # 英文/数字和中文之间加空格
             text = re.sub(r'([a-zA-Z0-9])([一-龥])', r'\1 \2', text)
             text = re.sub(r'([一-龥])([a-zA-Z0-9])', r'\1 \2', text)
-            # 多个空格合并为一个
-            text = re.sub(r' +', ' ', text)
             text = text.strip()
 
             # 保存到数据库
