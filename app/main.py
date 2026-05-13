@@ -759,7 +759,16 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
                 text = '\n'.join([c.get('text', '') for c in content])
             else:
                 text = content
-            return {"subtitles": text, "language": result.get('lang', 'unknown')}
+            lang = result.get('lang', 'unknown')
+
+            # 保存到数据库
+            try:
+                client = get_supabase()
+                client.table('videos').update({'subtitles': text}).eq('video_id', f'yt:video:{video_id}').execute()
+            except Exception as e:
+                print(f"保存字幕到数据库失败: {e}")
+
+            return {"subtitles": text, "language": lang}
         else:
             return {"error": "未找到字幕"}
 
