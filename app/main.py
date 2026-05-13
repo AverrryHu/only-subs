@@ -826,6 +826,9 @@ def poll_subtitles(job_id: str, video_id: str, authorization: Optional[str] = He
 
         if status == 'active':
             return {"status": "processing"}
+        elif status == 'failed':
+            error_msg = result.get('message', '任务失败')
+            return {"status": "failed", "message": error_msg}
         elif status == 'completed':
             content = result.get('content', [])
             if isinstance(content, list):

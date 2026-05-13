@@ -320,6 +320,10 @@ function App() {
           setExtracting(false)
           alert('提取失败: ' + (data.message || '未知错误'))
           return
+        } else if (data.status === 'failed') {
+          setExtracting(false)
+          alert('提取失败：音频文件不可用，可能已失效或需要登录')
+          return
         }
         // status === 'active' 继续等待
       } catch (e) {
