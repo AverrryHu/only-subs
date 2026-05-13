@@ -823,7 +823,8 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
             # 保存清洗后的字幕
             import re
             cleaned_text = re.sub(r'\n+', '', text)  # 去掉换行
-            cleaned_text = cleaned_text.replace(' ', '')  # 移除所有空格
+            # 只移除中文之间的空格，保留英文之间的空格
+            cleaned_text = re.sub(r'([一-龥])\s+([一-龥])', r'\1\2', cleaned_text)
             # 英文/数字和中文之间加空格
             cleaned_text = re.sub(r'([a-zA-Z0-9])([一-龥])', r'\1 \2', cleaned_text)
             cleaned_text = re.sub(r'([一-龥])([a-zA-Z0-9])', r'\1 \2', cleaned_text)
