@@ -9,15 +9,21 @@ from typing import Optional
 SUPABASE_URL = os.environ.get('SUPABASE_URL') or 'https://oguxjqmhsctolgzbkegy.supabase.co'
 SUPABASE_KEY = os.environ.get('SUPABASE_KEY') or 'sb_publishable_XhAMOQXhYLVlvVywa59zDw_lXCKfNhc'
 
-print(f"SUPABASE_URL: {SUPABASE_URL[:20]}...")
-print(f"SUPABASE_KEY set: {bool(SUPABASE_KEY)}")
-
-_supabase_client: Optional[Client] = None
+try:
+    _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    print(f"Supabase client created successfully")
+except Exception as e:
+    print(f"Error creating Supabase client: {e}")
+    _supabase_client = None
 
 def get_supabase() -> Client:
     global _supabase_client
     if _supabase_client is None:
-        _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        try:
+            _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        except Exception as e:
+            print(f"Error creating supabase client: {e}")
+            raise
     return _supabase_client
 
 
