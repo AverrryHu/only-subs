@@ -509,6 +509,7 @@ function App() {
           <span className="nav-logo">Only Subs</span>
         </div>
         <div className="nav-right">
+          <button className="logout-btn" onClick={() => setShowSettings(true)} title="设置">⚙</button>
           <img src={user.user_metadata?.avatar_url || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="8" fill="%23F7F7F5"/><text x="20" y="28" font-size="22" text-anchor="middle">🙂</text></svg>'} alt="" className="user-avatar" />
           <span className="user-id" title={user.email}>{user.user_metadata?.full_name || user.email?.split('@')[0]}</span>
           <button className="logout-btn" onClick={handleLogout} title="退出登录">退出</button>
