@@ -659,6 +659,34 @@ body {
   cursor: not-allowed;
 }
 
+/* Subtitle Tabs */
+.subtitle-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+
+.subtitle-tab {
+  padding: 4px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  color: #787774;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.subtitle-tab.active {
+  background: #F7F7F5;
+  color: #37352F;
+  font-weight: 500;
+}
+
+.subtitle-tab:hover:not(.active) {
+  background: #FBFBFA;
+}
+
 /* Detail Rows */
 .detail-row {
   display: flex;

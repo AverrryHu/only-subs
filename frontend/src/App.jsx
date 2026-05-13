@@ -266,9 +266,9 @@ function App() {
           })
         } else if (data.jobId) {
           // 异步任务，轮询结果
-          pollJob(data.jobId)
-        } else if (data.status === 'processing') {
           pollJob(data.jobId, videoId)
+        } else if (data.status === 'processing') {
+          pollJob(data.jobId || data.jobId, videoId)
         } else if (data.error) {
           alert(data.error)
         }
@@ -291,7 +291,8 @@ function App() {
   }
 
   // 轮询异步任务
-  const pollJob = async (jobId) => {
+  const pollJob = async (jobId, videoId) => {
+    if (!videoId) videoId = selectedVideo?.video_id || ''
     // 持续轮询直到完成
     for (let i = 0; i < 60; i++) {  // 最多5分钟
       await new Promise(r => setTimeout(r, 5000))
@@ -311,7 +312,11 @@ function App() {
         if (data.status === 'completed') {
           setSelectedVideo(prev => {
             if (!prev) return null
-            return { ...prev, subtitles: data.subtitles || '' }
+            return {
+              ...prev,
+              subtitles: data.subtitles || prev.subtitles || '',
+              api_subtitles: data.api_subtitles || data.subtitles || ''
+            }
           })
           setExtracting(false)
           alert('字幕提取完成')
@@ -353,6 +358,7 @@ function App() {
   const [filterDateTo, setFilterDateTo] = useState('')
   const [filterChannel, setFilterChannel] = useState('')
   const [filterPlatform, setFilterPlatform] = useState('')
+  const [subtitleTab, setSubtitleTab] = useState('cleaned')  // cleaned 或 raw
 
   // 筛选后的视频
   const filteredVideos = videos.filter(v => {
@@ -821,14 +827,30 @@ function App() {
                       </div>
                     ) : null
                   ) : null}
-                  {selectedVideo.subtitles ? (
+                  {selectedVideo.subtitles || selectedVideo.api_subtitles ? (
                     <div>
                       {selectedVideo.job_id && (
                         <div style={{fontSize: 11, color: '#888', marginBottom: 4}}>
-                          job: {selectedVideo.job_id}
+                          job: {selectedVideo.job_id} {selectedVideo.status && ` (${selectedVideo.status})`}
                         </div>
                       )}
-                      <pre className="transcript-text">{selectedVideo.subtitles}</pre>
+                      <div className="subtitle-tabs">
+                        <button
+                          className={`subtitle-tab ${subtitleTab === 'cleaned' ? 'active' : ''}`}
+                          onClick={() => setSubtitleTab('cleaned')}
+                        >
+                          清洗后
+                        </button>
+                        <button
+                          className={`subtitle-tab ${subtitleTab === 'raw' ? 'active' : ''}`}
+                          onClick={() => setSubtitleTab('raw')}
+                        >
+                          原始
+                        </button>
+                      </div>
+                      <pre className="transcript-text">
+                        {subtitleTab === 'raw' ? selectedVideo.api_subtitles : selectedVideo.subtitles}
+                      </pre>
                     </div>
                   ) : (
                     <div className="no-content">

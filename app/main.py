@@ -73,10 +73,12 @@ class VideoOut(BaseModel):
     published_at: Optional[str]
     duration: Optional[int]
     subtitles: Optional[str] = None
+    api_subtitles: Optional[str] = None
     description: Optional[str] = None
     has_new: bool
     platform: Optional[str] = None
     job_id: Optional[str] = None
+    status: Optional[str] = None
 
 
 class ChannelOut(BaseModel):
@@ -364,10 +366,12 @@ def get_videos_api(channel_id: Optional[str] = None, authorization: Optional[str
             published_at=v['published_at'][:10] if v.get('published_at') else None,
             duration=v.get('duration'),
             subtitles=v.get('subtitles'),
+            api_subtitles=v.get('api_subtitles'),
             description=v.get('description'),
             has_new=has_new,
             platform=platform,
-            job_id=v.get('job_id')
+            job_id=v.get('job_id'),
+            status=v.get('status')
         ))
 
     # 保存到缓存
@@ -426,10 +430,12 @@ def get_video_by_id_api(video_id: str, authorization: Optional[str] = Header(Non
         published_at=video['published_at'][:10] if video.get('published_at') else None,
         duration=video.get('duration'),
         subtitles=video.get('subtitles'),
+        api_subtitles=video.get('api_subtitles'),
         description=video.get('description'),
         has_new=has_new,
         platform=platform,
-        job_id=video.get('job_id')
+        job_id=video.get('job_id'),
+        status=video.get('status')
     )
 
 
@@ -474,12 +480,17 @@ def add_video_api(video: VideoIn):
         channel_id=new_video['channel_id'],
         channel_name=channel_name,
         title=new_video['title'],
-        url=new_video['url'],
+        url=new_video.get('url'),
         thumbnail=new_video.get('thumbnail'),
         published_at=new_video['published_at'][:10] if new_video.get('published_at') else None,
         duration=new_video.get('duration'),
         subtitles=new_video.get('subtitles'),
-        has_new=new_video.get('has_new', True)
+        api_subtitles=new_video.get('api_subtitles'),
+        has_new=new_video.get('has_new', True),
+        audio_url=new_video.get('audio_url'),
+        platform=channel.get('platform') if channel else None,
+        job_id=new_video.get('job_id'),
+        status=new_video.get('status')
     )
 
 
@@ -809,14 +820,14 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
                 text = content
             lang = result.get('lang', 'unknown')
 
-            # 清洗字幕：去掉所有空格，然后只在英文/数字和中文之间加空格
+            # 保存清洗后的字幕
             import re
-            text = re.sub(r'\n+', '', text)  # 去掉换行
-            text = text.replace(' ', '')  # 移除所有空格
+            cleaned_text = re.sub(r'\n+', '', text)  # 去掉换行
+            cleaned_text = cleaned_text.replace(' ', '')  # 移除所有空格
             # 英文/数字和中文之间加空格
-            text = re.sub(r'([a-zA-Z0-9])([一-龥])', r'\1 \2', text)
-            text = re.sub(r'([一-龥])([a-zA-Z0-9])', r'\1 \2', text)
-            text = text.strip()
+            cleaned_text = re.sub(r'([a-zA-Z0-9])([一-龥])', r'\1 \2', cleaned_text)
+            cleaned_text = re.sub(r'([一-龥])([a-zA-Z0-9])', r'\1 \2', cleaned_text)
+            cleaned_text = cleaned_text.strip()
 
             # 保存到数据库
             try:
@@ -827,21 +838,25 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
                 existing = client.table('videos').select('id').eq('video_id', db_video_id).execute()
                 if existing.data:
                     # 更新已有记录
-                    client.table('videos').update({'subtitles': text}).eq('video_id', db_video_id).execute()
+                    client.table('videos').update({
+                        'subtitles': cleaned_text,
+                        'api_subtitles': text  # 保存原始字幕
+                    }).eq('video_id', db_video_id).execute()
                 else:
                     # 创建新记录
                     client.table('videos').insert({
                         'video_id': db_video_id,
                         'title': f'YouTube Video {video_id}',
                         'url': f'https://www.youtube.com/watch?v={video_id}',
-                        'subtitles': text,
+                        'subtitles': cleaned_text,
+                        'api_subtitles': text,
                         'user_id': user_id,
                         'channel_id': ''
                     }).execute()
             except Exception as e:
                 print(f"保存字幕到数据库失败: {e}")
 
-            return {"subtitles": text, "language": lang}
+            return {"subtitles": cleaned_text, "language": lang}
         else:
             return {"error": "未找到字幕"}
 
