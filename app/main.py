@@ -823,7 +823,21 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
                 client = get_supabase()
                 # YouTube视频需要用完整video_id保存
                 db_video_id = video_id if video_id.startswith('yt:video:') else f'yt:video:{video_id}'
-                client.table('videos').update({'subtitles': text, 'job_id': ''}).eq('video_id', db_video_id).execute()
+                # 检查是否存在
+                existing = client.table('videos').select('id').eq('video_id', db_video_id).execute()
+                if existing.data:
+                    # 更新已有记录
+                    client.table('videos').update({'subtitles': text}).eq('video_id', db_video_id).execute()
+                else:
+                    # 创建新记录
+                    client.table('videos').insert({
+                        'video_id': db_video_id,
+                        'title': f'YouTube Video {video_id}',
+                        'url': f'https://www.youtube.com/watch?v={video_id}',
+                        'subtitles': text,
+                        'user_id': user_id,
+                        'channel_id': ''
+                    }).execute()
             except Exception as e:
                 print(f"保存字幕到数据库失败: {e}")
 
