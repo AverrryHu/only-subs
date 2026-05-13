@@ -35,6 +35,7 @@ podcast_fetcher = get_podcast_fetcher()
 @app.get("/")
 def root():
     """健康检查"""
+    print("Root endpoint called")
     return {"status": "ok"}
 
 
