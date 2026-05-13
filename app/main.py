@@ -737,7 +737,7 @@ def extract_subtitles(sub: SubtitleIn, authorization: Optional[str] = Header(Non
     # 使用supadata.ai API
     url = "https://api.supadata.ai/v1/transcripts"
     headers = {
-        "Authorization": f"Bearer {api_key}",
+        "x-api-key": api_key,
         "Content-Type": "application/json"
     }
     data = {
