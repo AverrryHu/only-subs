@@ -27,6 +27,7 @@ function App() {
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [emailLoginError, setEmailLoginError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const abortControllerRef = useRef(null)  // 取消请求用
 
   // 辅助函数
@@ -475,24 +476,87 @@ function App() {
   if (!user) {
     return (
       <div className="login-screen">
-        <div className="login-box">
-          <h1>Only Subs</h1>
-          {!showEmailLogin ? (
+        <div className="login-container">
+          {/* 左侧介绍区 */}
+          <div className="login-intro">
+            <div className="login-intro-content">
+              <div className="login-brand">
+                <span className="login-logo-icon">▶</span>
+                <span className="login-brand-name">OnlySubs</span>
+              </div>
+              <h1 className="login-intro-title">
+                <span className="title-line">Watch less.</span>
+                <span className="title-line">Learn more.</span>
+              </h1>
+              <p className="login-intro-desc">
+                把你订阅的YouTuber和播客，变成一个安静的学习工作台。告别算法 feed，只看你真正在乎的内容。
+              </p>
+              <div className="login-features">
+                <div className="login-feature">
+                  <div className="login-feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="7" height="7" />
+                      <rect x="14" y="3" width="7" height="7" />
+                      <rect x="14" y="14" width="7" height="7" />
+                      <rect x="3" y="14" width="7" height="7" />
+                    </svg>
+                  </div>
+                  <div className="login-feature-text">
+                    <div className="login-feature-title">跨平台聚合</div>
+                    <div className="login-feature-desc">YouTube + 小宇宙，一个地方看完</div>
+                  </div>
+                </div>
+                <div className="login-feature">
+                  <div className="login-feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="16" y1="13" x2="8" y2="13" />
+                      <line x1="16" y1="17" x2="8" y2="17" />
+                      <polyline points="10 9 9 9 8 9" />
+                    </svg>
+                  </div>
+                  <div className="login-feature-text">
+                    <div className="login-feature-title">一键获取文字稿</div>
+                    <div className="login-feature-desc">视频/播客秒变可读文本，效率翻倍</div>
+                  </div>
+                </div>
+                <div className="login-feature">
+                  <div className="login-feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <circle cx="12" cy="12" r="3" />
+                      <line x1="12" y1="2" x2="12" y2="5" />
+                      <line x1="12" y1="19" x2="12" y2="22" />
+                      <line x1="2" y1="12" x2="5" y2="12" />
+                      <line x1="19" y1="12" x2="22" y2="12" />
+                    </svg>
+                  </div>
+                  <div className="login-feature-text">
+                    <div className="login-feature-title">无噪音学习流</div>
+                    <div className="login-feature-desc">不被算法推荐打断，专注你的订阅</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 右侧登录区 */}
+          <div className="login-box">
+            <h2>登录账号</h2>
+            <p className="login-subtitle">同步你的订阅数据</p>
+            {!showEmailLogin ? (
+              <>
+                <button onClick={handleLogin} className="login-btn">
+                  使用Google登录
+                </button>
+                <button onClick={() => setShowEmailLogin(true)} className="login-btn">
+                  使用邮箱登录
+                </button>
+              </>
+            ) : (
             <>
-              <p>登录您的账号以同步您的订阅数据</p>
-              <button onClick={handleLogin} className="login-btn">
-                使用Google登录
-              </button>
-              <button onClick={() => setShowEmailLogin(true)} className="login-btn">
-                使用邮箱登录
-              </button>
-              <button onClick={() => setUser({ id: 'guest' })} className="guest-btn">
-                游客入口
-              </button>
-            </>
-          ) : (
-            <>
-              <p>{loginMode === 'login' ? '登录您的邮箱账号' : '注册新账号'}</p>
+              <p className="login-email-title">{loginMode === 'login' ? '登录您的邮箱账号' : '注册新账号'}</p>
               <div className="add-form">
                 <input
                   type="email"
@@ -500,12 +564,32 @@ function App() {
                   value={loginEmail}
                   onChange={e => setLoginEmail(e.target.value)}
                 />
-                <input
-                  type="password"
-                  placeholder="密码"
-                  value={loginPassword}
-                  onChange={e => setLoginPassword(e.target.value)}
-                />
+                <div className="password-input-wrapper">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="密码"
+                    value={loginPassword}
+                    onChange={e => setLoginPassword(e.target.value)}
+                    className="password-input"
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle-btn"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.72a3 3 0 1 1-4.24-4.24" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
                 {emailLoginError && <p className="error-message">{emailLoginError}</p>}
                 <button
                   onClick={async () => {
@@ -545,6 +629,7 @@ function App() {
               </div>
             </>
           )}
+          </div>
         </div>
       </div>
     )
