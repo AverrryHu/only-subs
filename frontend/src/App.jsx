@@ -350,6 +350,7 @@ function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [youtubeApiKey, setYoutubeApiKey] = useState('')
   const [showImport, setShowImport] = useState(false)
+  const [showImportHelp, setShowImportHelp] = useState(false)
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const [initialFetched, setInitialFetched] = useState(false)
@@ -489,7 +490,7 @@ function App() {
                 <span className="title-line">Learn more.</span>
               </h1>
               <p className="login-intro-desc">
-                把你订阅的YouTuber和播客，变成一个安静的学习工作台。告别算法 feed，只看你真正在乎的内容。
+                告别算法 Feed，只看你真正在乎的内容。
               </p>
               <div className="login-features">
                 <div className="login-feature">
@@ -630,6 +631,9 @@ function App() {
             </>
           )}
           </div>
+          <div className="login-footer">
+            Built by @Avery | <span>📕</span> <a href="https://xhslink.com/m/9E1IOI8Lggq" target="_blank" rel="noopener noreferrer">Avery胡</a> | <span>📭</span> 1227174412@qq.com
+          </div>
         </div>
       </div>
     )
@@ -644,7 +648,10 @@ function App() {
           <span className="nav-logo">Only Subs</span>
         </div>
         <div className="nav-right">
-          <button className="logout-btn" onClick={() => setShowSettings(true)} title="设置">⚙</button>
+          <button className="settings-link-btn" onClick={() => setShowSettings(true)}>
+            <span>⚙</span>
+            <span>文字功能配置</span>
+          </button>
           <img src={user.user_metadata?.avatar_url || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="8" fill="%23F7F7F5"/><text x="20" y="28" font-size="22" text-anchor="middle">🙂</text></svg>'} alt="" className="user-avatar" />
           <span className="user-id" title={user.email}>{user.user_metadata?.full_name || user.email?.split('@')[0]}</span>
           <button className="logout-btn" onClick={handleLogout} title="退出登录">退出</button>
@@ -962,13 +969,17 @@ function App() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <button className="close-btn" onClick={() => setShowSettings(false)}>×</button>
             <h2>设置</h2>
-            <p className="settings-tip">
-              API Key (用于获取YouTube字幕，推荐 supadata.ai)<br/>
-              注册: https://supadata.ai
+            <p className="settings-tip" style={{marginBottom: 16}}>
+              输入你的supadata api key以获取视频/播客的文字内容
+            </p>
+            <p className="settings-tip" style={{marginBottom: 16}}>
+              <a href="https://supadata.ai" target="_blank" rel="noopener noreferrer" style={{textDecoration: 'underline'}}>
+                前往https://supadata.ai/，注册并获取你的api key
+              </a>
             </p>
             <input
               type="text"
-              placeholder="粘贴YouTube API Key（可选）..."
+              placeholder="粘贴你的supadata api key"
               value={youtubeApiKey}
               onChange={(e) => setYoutubeApiKey(e.target.value)}
               className="settings-input"
@@ -983,8 +994,14 @@ function App() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <button className="close-btn" onClick={() => setShowImport(false)}>×</button>
             <h2>导入播客订阅</h2>
-            <p className="settings-tip">
-              选择小宇宙导出的 OPML 文件批量添加播客订阅
+            <p className="settings-tip" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8}}>
+              <span>选择小宇宙导出的 OPML 文件批量添加播客订阅</span>
+              <span
+                style={{cursor: 'pointer', textDecoration: 'underline', fontSize: 13, color: '#787774'}}
+                onClick={() => setShowImportHelp(true)}
+              >
+                如何获取OPML文件？
+              </span>
             </p>
             <input
               type="file"
@@ -1019,13 +1036,32 @@ function App() {
           </div>
         </div>
       )}
+      {showImportHelp && (
+        <div className="modal-overlay" onClick={() => setShowImportHelp(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setShowImportHelp(false)}>×</button>
+            <h2>导入播客订阅教程</h2>
+            <div className="import-help-content">
+              <p>步骤 1：打开小宇宙 APP ，点击「订阅」-「我的订阅」</p>
+              <p>步骤 2：点击右上角「导出」图标，勾选想订阅的播客</p>
+              <p>步骤 3：点击下方的「导出OPML」，就能成功获取OPML文件啦～</p>
+            </div>
+            <button onClick={() => setShowImportHelp(false)} className="settings-save-btn">
+              知道了
+            </button>
+          </div>
+        </div>
+      )}
       {showAddChannelModal && (
         <div className="modal-overlay" onClick={() => { setShowAddChannelModal(false); setChannelError(''); }}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <button className="close-btn" onClick={() => setShowAddChannelModal(false)}>×</button>
             <h2>添加 YouTube 频道</h2>
-            <p className="settings-tip">
-              请粘贴想订阅的YouTube频道主页链接
+            <p className="settings-tip" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8}}>
+              <span>请粘贴想订阅的YouTube频道主页链接</span>
+              <a href="https://www.youtube.com/feed/subscriptions" target="_blank" rel="noopener noreferrer" style={{textDecoration: 'underline', fontSize: 13, color: '#555'}}>
+                你的youtube订阅
+              </a>
             </p>
             {channelError && <p className="error-message">{channelError}</p>}
             <form onSubmit={addChannel} className="add-form">
